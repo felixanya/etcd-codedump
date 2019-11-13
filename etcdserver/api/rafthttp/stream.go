@@ -549,7 +549,7 @@ func (cr *streamReader) decodeLoop(rc io.ReadCloser, t streamType) error {
 		if m.Type == raftpb.MsgProp {
 			recvc = cr.propc
 		}
-		fmt.Println("<===================>", "2", "raft http stream recvc <- m")
+		fmt.Println("<===================>", "raft http stream recvc <- m")
 		select {
 		case recvc <- m:
 		default:

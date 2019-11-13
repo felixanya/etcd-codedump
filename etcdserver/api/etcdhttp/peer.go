@@ -43,7 +43,7 @@ func NewPeerHandler(lg *zap.Logger, s etcdserver.ServerPeer) http.Handler {
 }
 
 func newPeerHandler(lg *zap.Logger, s etcdserver.Server, raftHandler http.Handler, leaseHandler http.Handler) http.Handler {
-	fmt.Println("<===================>", "0.5.1", "raft peer handler 初始化（newPeerHandler）")
+	fmt.Println("<===================>", "raft peer handler 初始化（newPeerHandler）")
 	peerMembersHandler := newPeerMembersHandler(lg, s.Cluster())
 	peerMemberPromoteHandler := newPeerMemberPromoteHandler(lg, s)
 

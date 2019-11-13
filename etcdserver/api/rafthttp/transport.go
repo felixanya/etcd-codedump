@@ -162,7 +162,7 @@ func (t *Transport) Start() error {
 // raft peer 网络服务监听
 // raft实例通过此handler进行服务端的网络监听和处理
 func (t *Transport) Handler() http.Handler {
-	fmt.Println("<===================>", " 0.5.2", "raft transport handler 初始化")
+	fmt.Println("<===================>", "raft transport handler 初始化")
 	pipelineHandler := newPipelineHandler(t, t.Raft, t.ClusterID)
 	streamHandler := newStreamHandler(t, t, t.Raft, t.ID, t.ClusterID)
 	snapHandler := newSnapshotHandler(t, t.Raft, t.Snapshotter, t.ClusterID)
@@ -186,7 +186,7 @@ func (t *Transport) Get(id types.ID) Peer {
 // Send .
 // 加入一个put请求发送后，会根据peers的数量产生多个msg，send函数只需要根据peerid逐条发送
 func (t *Transport) Send(msgs []raftpb.Message) {
-	fmt.Println("<===================>", " 1.5", "raft transport 网络请求,向peers发送msg,数量：", len(msgs), time.Now())
+	fmt.Println("<===================>", "raft transport 网络请求,向peers发送msg,数量：", len(msgs), time.Now())
 	for _, m := range msgs {
 		if m.To == 0 {
 			// ignore intentionally dropped message
@@ -314,7 +314,7 @@ func (t *Transport) AddRemote(id types.ID, us []string) {
 
 // AddPeer .
 func (t *Transport) AddPeer(id types.ID, us []string) {
-	fmt.Println("<===================>", 0.3, "raft peers AddPeer, id：", id)
+	fmt.Println("<===================>", "raft peers AddPeer, id：", id)
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

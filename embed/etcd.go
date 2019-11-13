@@ -69,8 +69,13 @@ const (
 // Etcd contains a running etcd server and its listeners.
 // Etcd结构体
 type Etcd struct {
-	Peers   []*peerListener // peerListener的数组，默认就一个
-	Clients []net.Listener  // 向etcd集群发送HTTP请求的客户端
+	// 此Peers和raftNode中的peers不是一码事，是ETCD启动时参数指定的。
+	// Listener的数组，一般一个就够用了（我觉得）
+	Peers []*peerListener
+
+	// 向etcd集群发送HTTP请求的客户端
+	// 类似于Peers，Clients是netListener，监听client端的网络请求
+	Clients []net.Listener
 
 	sctxs            map[string]*serveCtx // 服务client的网络上下文Map
 	metricsListeners []net.Listener       // metrics？
@@ -92,8 +97,8 @@ type peerListener struct {
 
 // StartEtcd .
 // |-embed.StartEtcd() —>           embed/etcd.go
-// |  |-configurePeerListeners()     listenners
-// |  |-configureClientListeners()   listenners
+// |  |-configurePeerListeners()     peer网络监听，服务于raft
+// |  |-configureClientListeners()   client网络监听，服务于client
 // |  |-EtcdServer.ServerConfig()    生成新的配置
 // |  |
 // |  |-EtcdServer.NewServer()       etcdserver/server.go 正式启动RAFT服务<<<1>>>
@@ -113,7 +118,7 @@ type peerListener struct {
 // |  |
 // |  |-Etcd.serveClients()          启动协程处理客户请求
 func StartEtcd(inCfg *Config) (e *Etcd, err error) {
-	fmt.Println("<===================>", 0.3, "embd.StartEtcd()")
+	fmt.Println("<===================>", "embd.StartEtcd()")
 	if err = inCfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -553,12 +558,14 @@ func configurePeerListeners(cfg *Config) (peers []*peerListener, err error) {
 	return peers, nil
 }
 
-// configure peer handlers after rafthttp.Transport started
+// 启动网络监听
+// 1. 启动rafthttp
+// 2. 启动grpc
 // 1. p.serve = m.Serve
 // 2. PeerHandler = grpcHandlerFunc
 // 3. 猜测是通过grpc代理 peerHandler
 func (e *Etcd) servePeers() (err error) {
-	fmt.Println("<===================>", 0.5, "embed.servePeers()")
+	fmt.Println("<===================>", "embed.servePeers()")
 	ph := etcdhttp.NewPeerHandler(e.GetLogger(), e.Server)
 	var peerTLScfg *tls.Config
 	if !e.cfg.PeerTLSInfo.Empty() {
@@ -566,7 +573,7 @@ func (e *Etcd) servePeers() (err error) {
 			return err
 		}
 	}
-
+	// 要创建的Listenner数，取决于ETCD配置，默认1
 	for _, p := range e.Peers {
 		u := p.Listener.Addr().String()
 		gs := v3rpc.Server(e.Server, peerTLScfg)
@@ -615,7 +622,7 @@ func (e *Etcd) servePeers() (err error) {
 			} else {
 				plog.Info("listening for peers on ", u)
 			}
-			fmt.Println("<===================>", " 0.5.9", "raft peer 网络服务开始监听端口（l.serve()）")
+			fmt.Println("<===================>", "raft peer 网络服务开始监听端口（l.serve()）")
 			// 监听listen-peer-urls, 和其他etcd节点进行通信, raft协议
 			e.errHandler(l.serve())
 		}(pl)
@@ -644,6 +651,7 @@ func configureClientListeners(cfg *Config) (sctxs map[string]*serveCtx, err erro
 
 	sctxs = make(map[string]*serveCtx)
 	for _, u := range cfg.LCUrls {
+
 		sctx := newServeCtx(cfg.logger)
 		if u.Scheme == "http" || u.Scheme == "unix" {
 			if !cfg.ClientTLSInfo.Empty() {
@@ -741,7 +749,7 @@ func configureClientListeners(cfg *Config) (sctxs map[string]*serveCtx, err erro
 
 // 启动客户端监听Socket，等待客户端请求并响应
 func (e *Etcd) serveClients() (err error) {
-	fmt.Println("<===================>", 0.6, "embed.serveClients()")
+	fmt.Println("<===================>", "embed.serveClients()")
 	if !e.cfg.ClientTLSInfo.Empty() {
 		if e.cfg.logger != nil {
 			e.cfg.logger.Info(

@@ -55,7 +55,7 @@ func main() {
 //    |   |   |-EtcdServer.run()         etcdserver/raft.go 启动应用层的处理协程<<<2>>>
 //    |   |
 //    |   |-Etcd.servePeers()            启动集群内部通讯
-//    |   | |-etcdhttp.NewPeerHandler()  启动http服务
+//    |   | |-etcdhttp.NewPeerHandler()  启动http服务，pipeline长连接
 //    |   | |-v3rpc.Server()             启动gRPC服务 api/v3rpc/grpc.go，这里真正监听了frpc请求
 //    |   |   |-grpc.NewServer()         调用gRPC的接口创建
 //    |   |   |-pb.RegisterKVServer()    注册各种的服务，这里包含了多个
