@@ -203,6 +203,9 @@ func (sctx *serveCtx) serve(
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
 // connections or otherHandler otherwise. Given in gRPC docs.
+// 检测请求协议是否为 HTTP/2
+// 判断 Content-Type 是否为 application/grpc（gRPC 的默认标识位）
+// 根据协议的不同转发到不同的服务处理
 func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
 	if otherHandler == nil {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -210,6 +213,8 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 		})
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// http2 && grpc  -->  grpc
+		// 我觉得意义不大
 		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
 			grpcServer.ServeHTTP(w, r)
 		} else {

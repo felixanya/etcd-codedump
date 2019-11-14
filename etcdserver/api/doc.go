@@ -31,7 +31,7 @@ package api
 
 // rafthttp
 // rafthttp外层封装了etcdhttp，用做server端的服务监听
-// rafthttp本身作为client端使用，链接其他peers
+
 //  |-api
 //  |  |-etcdhttp
 //  |  |  |-etcdhttp.NewPeerHandler/peer.go                   创建http-handler，对外接收处理peer http请求
@@ -57,3 +57,6 @@ package api
 //    |       |-raftNode.Propose()                 raft/node.go
 //    |         |-raftNode.step()                  对于类型为MsgProp类型消息，向propc通道中传入数据
 //    |-header.fill()                              etcdserver/api/v3rpc/header.go填充响应的头部信息
+
+// 网络服务的启动是在 embed.servePeers()中进行的
+//

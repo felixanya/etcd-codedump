@@ -257,14 +257,16 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	e.Server.Start()
 
 	// 6. 网络监听
-	// 启动Peer监听，等待集群中其他机器连接自己。
+	// 启动Etcd.Peer监听，等待集群中其他机器连接自己。
 	if err = e.servePeers(); err != nil {
 		return e, err
 	}
+
 	// 启动客户端监听Socket，等待客户端请求并响应
 	if err = e.serveClients(); err != nil {
 		return e, err
 	}
+
 	if err = e.serveMetrics(); err != nil {
 		return e, err
 	}
@@ -559,13 +561,12 @@ func configurePeerListeners(cfg *Config) (peers []*peerListener, err error) {
 }
 
 // 启动网络监听
-// 1. 启动rafthttp
-// 2. 启动grpc
-// 1. p.serve = m.Serve
-// 2. PeerHandler = grpcHandlerFunc
-// 3. 猜测是通过grpc代理 peerHandler
+// 1. serve grpc
+// 2. serve rafthttp + grpc
 func (e *Etcd) servePeers() (err error) {
 	fmt.Println("<===================>", "embed.servePeers()")
+
+	// raft-http handler
 	ph := etcdhttp.NewPeerHandler(e.GetLogger(), e.Server)
 	var peerTLScfg *tls.Config
 	if !e.cfg.PeerTLSInfo.Empty() {
@@ -578,12 +579,20 @@ func (e *Etcd) servePeers() (err error) {
 		u := p.Listener.Addr().String()
 		gs := v3rpc.Server(e.Server, peerTLScfg)
 		m := cmux.New(p.Listener)
+
+		// http2请求，流量走这里
+		// grpc请求优先走这个handler，适配V3版本client
 		go gs.Serve(m.Match(cmux.HTTP2()))
+
+		// HTTP.Server，根据协议的不同，转发不同的handler.ServeHttp
 		srv := &http.Server{
 			Handler:     grpcHandlerFunc(gs, ph),
 			ReadTimeout: 5 * time.Minute,
 			ErrorLog:    defaultLog.New(ioutil.Discard, "", 0), // do not log user error
 		}
+
+		// http请求走这里handler，适配V2版本client
+		// Serve 函数是一个for循环，不断从listener.accept中读取链接
 		go srv.Serve(m.Match(cmux.Any()))
 
 		// listerner的serve方法赋值
