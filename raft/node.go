@@ -17,6 +17,7 @@ package raft
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	pb "go.etcd.io/etcd/raft/raftpb"
 )
@@ -296,6 +297,7 @@ func (n *node) Stop() {
 }
 
 // raft-node事件监听
+// 轮训读取n.propc
 func (n *node) run() {
 	var propc chan msgWithResult
 	var readyc chan Ready
@@ -341,7 +343,9 @@ func (n *node) run() {
 		// TODO: maybe buffer the config propose if there exists one (the way
 		// described in raft dissertation)
 		// Currently it is dropped in Step silently.
+		// 来自client端的PUT请求
 		case pm := <-propc:
+			fmt.Println("<===================>", "主协程拿到请求消息；pm := <-propc")
 			m := pm.m
 			m.From = r.id
 			err := r.Step(m)
@@ -385,7 +389,11 @@ func (n *node) run() {
 			}
 		case <-n.tickc:
 			n.rn.Tick()
+
+		// ready消息体写入chan，并且对msgs清空
+		// acceptReady: rn.raft.msgs = nil
 		case readyc <- rd:
+			fmt.Println("<===================>", "rd消息写进readyc，并清空msgs")
 			n.rn.acceptReady(rd)
 			advancec = n.advancec
 		case <-advancec:
@@ -414,6 +422,8 @@ func (n *node) Tick() {
 
 func (n *node) Campaign(ctx context.Context) error { return n.step(ctx, pb.Message{Type: pb.MsgHup}) }
 
+// Proprose
+// raftNode处理req主流程
 func (n *node) Propose(ctx context.Context, data []byte) error {
 	return n.stepWait(ctx, pb.Message{Type: pb.MsgProp, Entries: []pb.Entry{{Data: data}}})
 }
@@ -455,7 +465,7 @@ func (n *node) stepWait(ctx context.Context, m pb.Message) error {
 // if any.
 // raft消息写入到队列中，并通过chane拿到结果
 func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) error {
-
+	fmt.Println("<===================>", "消息写入raftNode chan，等待主协程处理；n.propc<-pm")
 	// 非msg类信息
 	if m.Type != pb.MsgProp {
 		select {
@@ -470,6 +480,7 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 	}
 
 	// 写入msg
+	// 朱协程不断轮训，读取n.propc
 	ch := n.propc
 	pm := msgWithResult{m: m}
 	if wait {
@@ -564,6 +575,7 @@ func (n *node) ReadIndex(ctx context.Context, rctx []byte) error {
 	return n.step(ctx, pb.Message{Type: pb.MsgReadIndex, Entries: []pb.Entry{{Data: rctx}}})
 }
 
+// n.propc
 func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
 	rd := Ready{
 		Entries:          r.raftLog.unstableEntries(),

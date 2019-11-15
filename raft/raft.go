@@ -429,6 +429,10 @@ func (r *raft) send(m pb.Message) {
 			m.Term = r.Term
 		}
 	}
+
+	// append msg
+	// raftNode只管appendmsg到 r.msgs；其他协程循环发送msgs到peers
+	fmt.Println("<===================>", "raftNode send msg, append to r.msgs")
 	r.msgs = append(r.msgs, m)
 }
 
@@ -443,7 +447,11 @@ func (r *raft) sendAppend(to uint64) {
 // argument controls whether messages with no entries will be sent
 // ("empty" messages are useful to convey updated Commit indexes, but
 // are undesirable when we're sending multiple messages in a batch).
+// 对entries进行日志操作
+// 发送到其他peers
 func (r *raft) maybeSendAppend(to uint64, sendIfEmpty bool) bool {
+	fmt.Println("<===================>", "stepLeader, maybeSendAppend， send to:", to)
+
 	pr := r.prs.Progress[to]
 	if pr.IsPaused() {
 		return false
@@ -501,6 +509,8 @@ func (r *raft) maybeSendAppend(to uint64, sendIfEmpty bool) bool {
 			}
 		}
 	}
+
+	// send
 	r.send(m)
 	return true
 }
@@ -527,6 +537,8 @@ func (r *raft) sendHeartbeat(to uint64, ctx []byte) {
 // bcastAppend sends RPC, with entries to all peers that are not up-to-date
 // according to the progress recorded in r.prs.
 // 分发log到各个节点
+// prs.Visit 遍历peers执行多次
+// raftNode在启动时（node.run）会不断轮训r.msgs，获取消息，创建一个ready实例
 func (r *raft) bcastAppend() {
 	r.prs.Visit(func(id uint64, _ *tracker.Progress) {
 		if id == r.id {
@@ -834,8 +846,10 @@ func (r *raft) poll(id uint64, t pb.MessageType, v bool) (granted int, rejected 
 // 处理请求
 // 由 node.go调用
 // 上层收到msg后，启动Step
+// 执行raft业务逻辑
 func (r *raft) Step(m pb.Message) error {
 	// Handle the message term, which may result in our stepping down to a follower.
+	// 处理非典型msg，term不符合预期的情况
 	switch {
 	case m.Term == 0:
 		// local message
@@ -900,6 +914,8 @@ func (r *raft) Step(m pb.Message) error {
 			// we drop messages with a lower term.
 			r.logger.Infof("%x [logterm: %d, index: %d, vote: %x] rejected %s from %x [logterm: %d, index: %d] at term %d",
 				r.id, r.raftLog.lastTerm(), r.raftLog.lastIndex(), r.Vote, m.Type, m.From, m.LogTerm, m.Index, r.Term)
+
+			// 发送消息到其他peers
 			r.send(pb.Message{To: m.From, Term: r.Term, Type: pb.MsgPreVoteResp, Reject: true})
 		} else {
 			// ignore other cases
@@ -985,7 +1001,9 @@ func (r *raft) Step(m pb.Message) error {
 			r.send(pb.Message{To: m.From, Term: r.Term, Type: voteRespMsgType(m.Type), Reject: true})
 		}
 
+	// leader节点处理来自client端的msg
 	default:
+		// step == stepLeader
 		err := r.step(r, m)
 		if err != nil {
 			return err
@@ -1027,6 +1045,8 @@ func stepLeader(r *raft, m pb.Message) error {
 			}
 		})
 		return nil
+
+	// 处理Propose
 	case pb.MsgProp:
 		if len(m.Entries) == 0 {
 			r.logger.Panicf("%x stepped empty MsgProp", r.id)
@@ -1041,6 +1061,7 @@ func stepLeader(r *raft, m pb.Message) error {
 			r.logger.Debugf("%x [term %d] transfer leadership to %x is in progress; dropping proposal", r.id, r.Term, r.leadTransferee)
 			return ErrProposalDropped
 		}
+		fmt.Println("<===================>", "stepLeader, Entries: ", len(m.Entries))
 
 		for i := range m.Entries {
 			e := &m.Entries[i]

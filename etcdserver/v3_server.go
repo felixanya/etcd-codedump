@@ -18,8 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"time"
-
+	"fmt"
 	"go.etcd.io/etcd/auth"
 	"go.etcd.io/etcd/etcdserver/api/membership"
 	pb "go.etcd.io/etcd/etcdserver/etcdserverpb"
@@ -28,6 +27,7 @@ import (
 	"go.etcd.io/etcd/mvcc"
 	"go.etcd.io/etcd/pkg/traceutil"
 	"go.etcd.io/etcd/raft"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"go.uber.org/zap"
@@ -144,7 +144,9 @@ func (s *EtcdServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeRe
 }
 
 // Put .
+// 来自客户端的PUT请求
 func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) {
+	fmt.Println("<===================>", "ETCD server put request")
 	ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now())
 	resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r})
 	if err != nil {
@@ -575,6 +577,7 @@ func (s *EtcdServer) RoleDelete(ctx context.Context, r *pb.AuthRoleDeleteRequest
 }
 
 func (s *EtcdServer) raftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (proto.Message, error) {
+	fmt.Println("<===================>", "ETCD server send raft request")
 	result, err := s.processInternalRaftRequestOnce(ctx, r)
 	if err != nil {
 		return nil, err
@@ -626,6 +629,8 @@ func (s *EtcdServer) doSerialize(ctx context.Context, chk func(*auth.AuthInfo) e
 // processInternalRaftRequestOnce .
 // 处理来自内部的raft请求,自于etcd grpc服务
 func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) {
+
+	// 应用和commit index
 	ai := s.getAppliedIndex()
 	ci := s.getCommittedIndex()
 
@@ -663,6 +668,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	}
 
 	// 对ID注册一个chan，等待异步回调
+	// ID是全局唯一的，不需要担心
 	ch := s.w.Register(id)
 
 	// 超时处理
@@ -673,7 +679,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	err = s.r.Propose(cctx, data)
 	if err != nil {
 		proposalsFailed.Inc()
-		s.w.Trigger(id, nil) // GC wait
+		s.w.Trigger(id, nil) // GC wait，写入nil
 		return nil, err
 	}
 	proposalsPending.Inc()
@@ -682,6 +688,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	// 等待返回的结果
 	select {
 	case x := <-ch:
+		fmt.Println("<===================>", "x := <-ch")
 		data := x.(*applyResult)
 		return data, nil
 	case <-cctx.Done():
