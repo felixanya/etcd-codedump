@@ -581,7 +581,7 @@ func (e *Etcd) servePeers() (err error) {
 		m := cmux.New(p.Listener)
 
 		// http2请求，流量走这里
-		// grpc请求优先走这个handler，适配V3版本client
+		// grpc请求优先走这个handler
 		go gs.Serve(m.Match(cmux.HTTP2()))
 
 		// HTTP.Server，根据协议的不同，转发不同的handler.ServeHttp

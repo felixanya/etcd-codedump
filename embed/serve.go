@@ -107,6 +107,8 @@ func (sctx *serveCtx) serve(
 		}
 	}()
 
+	// 注册grpc代理网关
+	// 默认是true,暂时不知道干啥的
 	if sctx.insecure {
 		gs = v3rpc.Server(s, nil, gopts...)
 		v3electionpb.RegisterElectionServer(gs, servElection)
@@ -119,6 +121,7 @@ func (sctx *serveCtx) serve(
 
 		var gwmux *gw.ServeMux
 		if s.Cfg.EnableGRPCGateway {
+			// 注册网关
 			gwmux, err = sctx.registerGateway([]grpc.DialOption{grpc.WithInsecure()})
 			if err != nil {
 				return err
@@ -145,6 +148,7 @@ func (sctx *serveCtx) serve(
 		}
 	}
 
+	// 默认false
 	if sctx.secure {
 		tlscfg, tlsErr := tlsinfo.ServerConfig()
 		if tlsErr != nil {
@@ -206,6 +210,7 @@ func (sctx *serveCtx) serve(
 // 检测请求协议是否为 HTTP/2
 // 判断 Content-Type 是否为 application/grpc（gRPC 的默认标识位）
 // 根据协议的不同转发到不同的服务处理
+// 还是有点不清楚，但是先略过
 func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
 	if otherHandler == nil {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +221,7 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 		// http2 && grpc  -->  grpc
 		// 我觉得意义不大
 		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
-			grpcServer.ServeHTTP(w, r)
+			// grpcServer.ServeHTTP(w, r)
 		} else {
 			otherHandler.ServeHTTP(w, r)
 		}
