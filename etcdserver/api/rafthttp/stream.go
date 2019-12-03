@@ -420,7 +420,7 @@ func (cr *streamReader) run() {
 	}
 
 	for {
-		fmt.Println("<===================>", "strean reader dial to endpoint\n")
+		fmt.Println("<===================>", "stream reader dial to endpoint\n")
 
 		rc, err := cr.dial(t)
 		if err != nil {
@@ -527,7 +527,7 @@ func (cr *streamReader) decodeLoop(rc io.ReadCloser, t streamType) error {
 
 	// gofail: labelRaftDropHeartbeat:
 	// 循环从body中获取数据
-	fmt.Println("<===================>", "strean reader loop get body data, dec.decode. \n")
+	fmt.Println("<===================>", "stream reader loop get body data, dec.decode. \n")
 	for {
 		m, err := dec.decode()
 		if err != nil {
