@@ -37,8 +37,8 @@ const (
 )
 
 // NewPeerHandler generates an http.Handler to handle etcd peer requests.
-// raft网络服务监听
 func NewPeerHandler(lg *zap.Logger, s etcdserver.ServerPeer) http.Handler {
+	// RaftHandler == s.transport.handler
 	return newPeerHandler(lg, s, s.RaftHandler(), s.LeaseHandler())
 }
 

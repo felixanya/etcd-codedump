@@ -618,6 +618,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		LeaderStats: lstats,
 		ErrorC:      srv.errorc,
 	}
+	// 这是干嘛的
 	if err = tr.Start(); err != nil {
 		return nil, err
 	}

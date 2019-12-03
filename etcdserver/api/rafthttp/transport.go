@@ -159,8 +159,8 @@ func (t *Transport) Start() error {
 	return nil
 }
 
-// raft peer 网络服务监听
-// raft实例通过此handler进行服务端的网络监听和处理
+// 处理`/raft`前缀的网络请求
+// handles其他节点(peers)的网络请求
 func (t *Transport) Handler() http.Handler {
 	fmt.Println("<===================>", "raft transport handler 初始化")
 	pipelineHandler := newPipelineHandler(t, t.Raft, t.ClusterID)

@@ -109,6 +109,8 @@ type outgoingConn struct {
 }
 
 // streamWriter writes messages to the attached outgoingConn.
+// 通过HTTP请求拿到outgoingConn，发送messages
+// flush() -> 发送
 type streamWriter struct {
 	lg *zap.Logger
 
@@ -236,6 +238,7 @@ func (cw *streamWriter) run() {
 			sentFailures.WithLabelValues(cw.peerID.String()).Inc()
 
 		case conn := <-cw.connc:
+			fmt.Println("<===================>", "stream writer get con from connc")
 			cw.mu.Lock()
 			closed := cw.closeUnlocked()
 			t = conn.t

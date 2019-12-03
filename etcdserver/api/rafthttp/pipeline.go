@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"sync"
 	"time"
@@ -93,16 +94,20 @@ func (p *pipeline) stop() {
 	}
 }
 
+// 拿到msg然后发送非远端
 func (p *pipeline) handle() {
 	defer p.wg.Done()
 
 	for {
 		select {
+		// 从管道拿到msg
 		case m := <-p.msgc:
 			start := time.Now()
+			// 发送给远端peer
 			err := p.post(pbutil.MustMarshal(&m))
 			end := time.Now()
 
+			// 错误处理
 			if err != nil {
 				p.status.deactivate(failureType{source: pipelineMsg, action: "write"}, err.Error())
 
@@ -131,8 +136,7 @@ func (p *pipeline) handle() {
 	}
 }
 
-// post POSTs a data payload to a url. Returns nil if the POST succeeds,
-// error on any failure.
+// post信息到远端peer
 func (p *pipeline) post(data []byte) (err error) {
 	u := p.picker.pick()
 	req := createPostRequest(u, RaftPrefix, bytes.NewBuffer(data), "application/protobuf", p.tr.URLs, p.tr.ID, p.tr.ClusterID)
@@ -149,7 +153,11 @@ func (p *pipeline) post(data []byte) (err error) {
 		}
 	}()
 
+	// http请求
+	// RoundTrip .
+	fmt.Println("<===================>", "rafthttp pipeline transport post data to peer")
 	resp, err := p.tr.pipelineRt.RoundTrip(req)
+
 	done <- struct{}{}
 	if err != nil {
 		p.picker.unreachable(u)

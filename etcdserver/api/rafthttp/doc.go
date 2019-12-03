@@ -24,4 +24,3 @@ package rafthttp
 //  |  |-rafthttp                                             rafthttp包
 //  |  |  |-stream                                   	      HTTP长连接，主要负责传输数据量较小、发送比较频繁的消息，例如，MsgApp消息、MsgHeartbeat消息、MsgVote消息等。
 //  |  |  |-pipeline                                          Pipeline的消息通道在传输数据完成后立即关闭连接，主要负责传输数据量较大、发送频率较低的消息，例如，MsgSnap消息等。
-// rafthttp/doc.go写了一部分注释，具体分析看那里
