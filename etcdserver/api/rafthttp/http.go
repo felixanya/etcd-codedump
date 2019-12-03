@@ -90,7 +90,7 @@ func newPipelineHandler(t *Transport, r Raft, cid types.ID) http.Handler {
 
 // ServeHTTP .
 func (h *pipelineHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("<===================>", "pipeline handler ServeHTTP")
+	fmt.Println("<===================>", "pipeline handler ServeHTTP \n")
 
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -372,7 +372,7 @@ func newStreamHandler(t *Transport, pg peerGetter, r Raft, id, cid types.ID) htt
 }
 
 func (h *streamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("<===================>", "stream handler ServeHTTP")
+	fmt.Println("<===================>", "stream handler ServeHTTP \n")
 	if r.Method != "GET" {
 		w.Header().Set("Allow", "GET")
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)

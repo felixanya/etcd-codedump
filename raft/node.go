@@ -345,7 +345,7 @@ func (n *node) run() {
 		// Currently it is dropped in Step silently.
 		// 来自client端的PUT请求
 		case pm := <-propc:
-			fmt.Println("<===================>", "主协程拿到请求消息；pm := <-propc")
+			fmt.Println("<===================>", "主协程拿到请求消息；pm := <-propc \n")
 			m := pm.m
 			m.From = r.id
 			err := r.Step(m)
@@ -393,7 +393,7 @@ func (n *node) run() {
 		// ready消息体写入chan，并且对msgs清空
 		// acceptReady: rn.raft.msgs = nil
 		case readyc <- rd:
-			fmt.Println("<===================>", "rd消息写进readyc，并清空msgs")
+			fmt.Println("<===================>", "rd消息写进readyc，并清空msgs \n")
 			n.rn.acceptReady(rd)
 			advancec = n.advancec
 		case <-advancec:
@@ -465,7 +465,7 @@ func (n *node) stepWait(ctx context.Context, m pb.Message) error {
 // if any.
 // raft消息写入到队列中，并通过chane拿到结果
 func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) error {
-	fmt.Println("<===================>", "消息写入raftNode chan，等待主协程处理；n.propc<-pm")
+	fmt.Println("<===================>", "消息写入raftNode chan，等待主协程处理；n.propc<-pm \n")
 	// 非msg类信息
 	if m.Type != pb.MsgProp {
 		select {

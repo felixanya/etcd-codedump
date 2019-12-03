@@ -238,7 +238,7 @@ func (cw *streamWriter) run() {
 			sentFailures.WithLabelValues(cw.peerID.String()).Inc()
 
 		case conn := <-cw.connc:
-			fmt.Println("<===================>", "stream writer get con from connc")
+			fmt.Println("<===================>", "stream writer get con from connc \n")
 			cw.mu.Lock()
 			closed := cw.closeUnlocked()
 			t = conn.t
@@ -367,6 +367,8 @@ func (cw *streamWriter) stop() {
 
 // streamReader is a long-running go-routine that dials to the remote stream
 // endpoint and reads messages from the response body returned.
+// for循环，不断的去dial远端http服务，拿到resp.Body
+// 拿到body后，decodeLoop 循环读取数据
 type streamReader struct {
 	lg *zap.Logger
 
@@ -418,6 +420,8 @@ func (cr *streamReader) run() {
 	}
 
 	for {
+		fmt.Println("<===================>", "strean reader dial to endpoint\n")
+
 		rc, err := cr.dial(t)
 		if err != nil {
 			if err != errUnsupportedStreamType {
@@ -458,7 +462,9 @@ func (cr *streamReader) run() {
 				cr.status.deactivate(failureType{source: t.String(), action: "read"}, err.Error())
 			}
 		}
+
 		// Wait for a while before new dial attempt
+		// 下一次请求发起之前，先wait一下
 		err = cr.rl.Wait(cr.ctx)
 		if cr.ctx.Err() != nil {
 			if cr.lg != nil {
@@ -520,6 +526,8 @@ func (cr *streamReader) decodeLoop(rc io.ReadCloser, t streamType) error {
 	cr.mu.Unlock()
 
 	// gofail: labelRaftDropHeartbeat:
+	// 循环从body中获取数据
+	fmt.Println("<===================>", "strean reader loop get body data, dec.decode. \n")
 	for {
 		m, err := dec.decode()
 		if err != nil {
@@ -552,8 +560,8 @@ func (cr *streamReader) decodeLoop(rc io.ReadCloser, t streamType) error {
 		if m.Type == raftpb.MsgProp {
 			recvc = cr.propc
 		}
-		fmt.Println("<===================>", "raft http stream recvc <- m")
 		select {
+		// 拿到的msg扔进管道
 		case recvc <- m:
 		default:
 			if cr.status.isActive() {
@@ -596,6 +604,7 @@ func (cr *streamReader) stop() {
 	<-cr.done
 }
 
+// 向远端endpoint发送一次http请求，并拿回resp.Body
 func (cr *streamReader) dial(t streamType) (io.ReadCloser, error) {
 	u := cr.picker.pick()
 	uu := u

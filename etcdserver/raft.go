@@ -175,7 +175,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 				r.tick()
 			// 当超过集群半数以上节点应答接收这条日志数据时，raft通过Ready结构体通知etcd server中的raft该日志数据已经commit
 			case rd := <-r.Ready():
-				fmt.Println("<===================>", "rc.node.readyc读取ready")
+				fmt.Println("<===================>", "rc.node.readyc读取ready \n")
 				if rd.SoftState != nil {
 					newLeader := rd.SoftState.Lead != raft.None && rh.getLead() != rd.SoftState.Lead
 					if newLeader {

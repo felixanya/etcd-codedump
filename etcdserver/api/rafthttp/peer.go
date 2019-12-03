@@ -130,7 +130,7 @@ type peer struct {
 // 通过transport发送，多路复用
 // 通过peer接收返回信息
 func startPeer(t *Transport, urls types.URLs, peerID types.ID, fs *stats.FollowerStats) *peer {
-	fmt.Println("<===================>", "startPeer")
+	fmt.Println("<===================>", "startPeer \n")
 	if t.Logger != nil {
 		t.Logger.Info("starting remote peer", zap.String("remote-peer-id", peerID.String()))
 	} else {
@@ -181,7 +181,7 @@ func startPeer(t *Transport, urls types.URLs, peerID types.ID, fs *stats.Followe
 		for {
 			select {
 			case mm := <-p.recvc:
-				fmt.Println("<===================>", "peer 接收到 recvc里的消息", time.Now())
+				fmt.Println("<===================>", "peer 接收到 recvc里的消息 \n")
 				if err := r.Process(ctx, mm); err != nil {
 					if t.Logger != nil {
 						t.Logger.Warn("failed to process Raft message", zap.Error(err))
@@ -202,7 +202,7 @@ func startPeer(t *Transport, urls types.URLs, peerID types.ID, fs *stats.Followe
 		for {
 			select {
 			case mm := <-p.propc:
-				fmt.Println("<===================>", "peer 接收到 propc里的消息", time.Now())
+				fmt.Println("<===================>", "peer 接收到 propc里的消息 \n")
 				if err := r.Process(ctx, mm); err != nil {
 					plog.Warningf("failed to process raft message (%v)", err)
 				}

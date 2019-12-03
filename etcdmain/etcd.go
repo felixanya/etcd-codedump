@@ -56,7 +56,7 @@ var (
 // 1. 有可能启动proxy
 // 2. 服务入口：startEtcd
 func startEtcdOrProxyV2() {
-	fmt.Println("<===================>", "etcdman.startEtcdOrProxyV2()")
+	fmt.Println("<===================>", "etcdman.startEtcdOrProxyV2  \n")
 	grpc.EnableTracing = false
 
 	cfg := newConfig()
@@ -304,7 +304,7 @@ func startEtcdOrProxyV2() {
 
 // 启动Etcd
 func startEtcd(cfg *embed.Config) (<-chan struct{}, <-chan error, error) {
-	fmt.Println("<===================>", "etcdman.tartEtcd()")
+	fmt.Println("<===================>", "etcdman.tartEtcd  \n")
 	e, err := embed.StartEtcd(cfg)
 	if err != nil {
 		return nil, nil, err

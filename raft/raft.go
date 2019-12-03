@@ -432,7 +432,7 @@ func (r *raft) send(m pb.Message) {
 
 	// append msg
 	// raftNode只管appendmsg到 r.msgs；其他协程循环发送msgs到peers
-	fmt.Println("<===================>", "raftNode send msg, append to r.msgs")
+	fmt.Println("<===================>", "raftNode send msg, append to r.msgs \n")
 	r.msgs = append(r.msgs, m)
 }
 
@@ -450,7 +450,7 @@ func (r *raft) sendAppend(to uint64) {
 // 对entries进行日志操作
 // 发送到其他peers
 func (r *raft) maybeSendAppend(to uint64, sendIfEmpty bool) bool {
-	fmt.Println("<===================>", "stepLeader, maybeSendAppend， send to:", to)
+	fmt.Println("<===================>", "stepLeader, maybeSendAppend， send to:", to, "\n")
 
 	pr := r.prs.Progress[to]
 	if pr.IsPaused() {
@@ -1061,7 +1061,7 @@ func stepLeader(r *raft, m pb.Message) error {
 			r.logger.Debugf("%x [term %d] transfer leadership to %x is in progress; dropping proposal", r.id, r.Term, r.leadTransferee)
 			return ErrProposalDropped
 		}
-		fmt.Println("<===================>", "stepLeader, Entries: ", len(m.Entries))
+		fmt.Println("<===================>", "stepLeader, Entries: ", len(m.Entries), "\n")
 
 		for i := range m.Entries {
 			e := &m.Entries[i]

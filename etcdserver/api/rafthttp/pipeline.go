@@ -155,7 +155,7 @@ func (p *pipeline) post(data []byte) (err error) {
 
 	// http请求
 	// RoundTrip .
-	fmt.Println("<===================>", "rafthttp pipeline transport post data to peer")
+	fmt.Println("<===================>", "rafthttp pipeline transport post data to peer \n")
 	resp, err := p.tr.pipelineRt.RoundTrip(req)
 
 	done <- struct{}{}

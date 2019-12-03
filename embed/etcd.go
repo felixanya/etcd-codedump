@@ -110,7 +110,7 @@ type peerListener struct {
 // |  |   |-EtcdServer.run()         etcdserver/raft.go 启动应用层的处理协程<<<2>>>
 // |  |
 // |  |-Etcd.servePeers()            启动集群内部通讯
-// |  | |-etcdhttp.NewPeerHandler()  启动http服务
+// |  | |-etcdhttp.NewPeerHandler()  启动http服务，handler包括raft和lease
 // |  | |-v3rpc.Server()             启动gRPC服务 api/v3rpc/grpc.go，这里真正监听了frpc请求
 // |  |   |-grpc.NewServer()         调用gRPC的接口创建
 // |  |   |-pb.RegisterKVServer()    注册各种的服务，这里包含了多个
@@ -118,7 +118,7 @@ type peerListener struct {
 // |  |
 // |  |-Etcd.serveClients()          启动协程处理客户请求
 func StartEtcd(inCfg *Config) (e *Etcd, err error) {
-	fmt.Println("<===================>", "embd.StartEtcd()")
+	fmt.Println("<===================>", "embd.StartEtcd \n")
 	if err = inCfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -564,7 +564,7 @@ func configurePeerListeners(cfg *Config) (peers []*peerListener, err error) {
 // 1. serve grpc
 // 2. serve rafthttp + grpc
 func (e *Etcd) servePeers() (err error) {
-	fmt.Println("<===================>", "embed.servePeers()")
+	fmt.Println("<===================>", "embed.servePeers \n")
 
 	// raft-http handler
 	ph := etcdhttp.NewPeerHandler(e.GetLogger(), e.Server)
@@ -631,7 +631,7 @@ func (e *Etcd) servePeers() (err error) {
 			} else {
 				plog.Info("listening for peers on ", u)
 			}
-			fmt.Println("<===================>", "raft peer 网络服务开始监听端口（l.serve()）")
+			fmt.Println("<===================>", "raft peer 网络服务开始监听端口  peerListener.serve \n")
 			// 监听listen-peer-urls, 和其他etcd节点进行通信, raft协议
 			e.errHandler(l.serve())
 		}(pl)
@@ -758,7 +758,7 @@ func configureClientListeners(cfg *Config) (sctxs map[string]*serveCtx, err erro
 
 // 启动客户端监听Socket，等待客户端请求并响应
 func (e *Etcd) serveClients() (err error) {
-	fmt.Println("<===================>", "embed.serveClients()")
+	fmt.Println("<===================>", "embed.serveClients \n")
 	if !e.cfg.ClientTLSInfo.Empty() {
 		if e.cfg.logger != nil {
 			e.cfg.logger.Info(

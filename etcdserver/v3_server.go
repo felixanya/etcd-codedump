@@ -146,7 +146,7 @@ func (s *EtcdServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeRe
 // Put .
 // 来自客户端的PUT请求
 func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) {
-	fmt.Println("<===================>", "ETCD server put request")
+	fmt.Println("<===================>", "ETCD server put request \n")
 	ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now())
 	resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r})
 	if err != nil {
@@ -577,7 +577,7 @@ func (s *EtcdServer) RoleDelete(ctx context.Context, r *pb.AuthRoleDeleteRequest
 }
 
 func (s *EtcdServer) raftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (proto.Message, error) {
-	fmt.Println("<===================>", "ETCD server send raft request")
+	fmt.Println("<===================>", "ETCD server send raft request \n")
 	result, err := s.processInternalRaftRequestOnce(ctx, r)
 	if err != nil {
 		return nil, err
@@ -688,7 +688,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	// 等待返回的结果
 	select {
 	case x := <-ch:
-		fmt.Println("<===================>", "x := <-ch")
+		fmt.Println("<===================>", "x := <-ch \n")
 		data := x.(*applyResult)
 		return data, nil
 	case <-cctx.Done():

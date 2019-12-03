@@ -628,7 +628,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 			tr.AddRemote(m.ID, m.PeerURLs)
 		}
 	}
-	fmt.Println("<===================>", "raft peers 初始化, 数量：", len(cl.Members()))
+	fmt.Println("<===================>", "raft peers 初始化, 数量：", len(cl.Members()), "\n")
 	for _, m := range cl.Members() {
 		if m.ID != id {
 			tr.AddPeer(m.ID, m.PeerURLs)
@@ -727,7 +727,7 @@ func (s *EtcdServer) adjustTicks() {
 // 服务真正serve前的初始化
 // 阻塞任务都会放进goroutine异步执行，保证start不会阻塞
 func (s *EtcdServer) Start() {
-	fmt.Println("<===================>", "etcdserver.Start()")
+	fmt.Println("<===================>", "etcdserver.Start \n")
 	// 1. 初始化
 	s.start()
 
