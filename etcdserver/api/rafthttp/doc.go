@@ -25,4 +25,6 @@ package rafthttp
 //  |  |  |-stream                                   	      HTTP长连接，主要负责传输数据量较小、发送比较频繁的消息，例如，MsgApp消息、MsgHeartbeat消息、MsgVote消息等。
 //  |  |  |-pipeline                                          Pipeline的消息通道在传输数据完成后立即关闭连接，主要负责传输数据量较大、发送频率较低的消息，例如，MsgSnap消息等。
 
-// raft-http发送与接收数据
+// raft-http几个重要strcut
+// stream: stream是raft节点之间信息交流的结构体，通过ServeHTTP方法拿到http conection,然后attach到outgoingcon，不断write resp.Body（或者 read resp.Body），提高通信性能
+// pipeline: stream不可用的时候，会使用pipeline

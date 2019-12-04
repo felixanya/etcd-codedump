@@ -96,6 +96,11 @@ type Peer interface {
 // to the remote follower node.
 // A pipeline is a series of http clients that send http requests to the remote.
 // It is only used when the stream has not been established.
+// raft-node节点间的通信依靠peer
+// 底层是通过transport支持的，transport负责网络数据发送
+// 数据包括pipeline和stream两种发送方式；当且只有stream不能用的时候，pipeline才会使用
+// peer是无返回的数据发送，每一个raft节点都会监听网络端口，集群在启动后，各个节点建立起连接
+// 在向peer发送消息后，当前http连接不会返回任何结果； 会在另外一个由对端peer向我方请求的http长连接中拿到结果
 type peer struct {
 	lg *zap.Logger
 
@@ -181,7 +186,7 @@ func startPeer(t *Transport, urls types.URLs, peerID types.ID, fs *stats.Followe
 		for {
 			select {
 			case mm := <-p.recvc:
-				fmt.Println("<===================>", "peer 接收到 recvc里的消息 \n")
+				fmt.Println("<===================>", "raft http peer get msg from raft transport, and run in raftNode.Process \n")
 				if err := r.Process(ctx, mm); err != nil {
 					if t.Logger != nil {
 						t.Logger.Warn("failed to process Raft message", zap.Error(err))

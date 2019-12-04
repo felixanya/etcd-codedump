@@ -110,7 +110,7 @@ type peerListener struct {
 // |  |   |-EtcdServer.run()         etcdserver/raft.go 启动应用层的处理协程<<<2>>>
 // |  |
 // |  |-Etcd.servePeers()            启动集群内部通讯
-// |  | |-etcdhttp.NewPeerHandler()  启动http服务，handler包括raft和lease
+// |  | 好的
 // |  | |-v3rpc.Server()             启动gRPC服务 api/v3rpc/grpc.go，这里真正监听了frpc请求
 // |  |   |-grpc.NewServer()         调用gRPC的接口创建
 // |  |   |-pb.RegisterKVServer()    注册各种的服务，这里包含了多个
@@ -563,6 +563,7 @@ func configurePeerListeners(cfg *Config) (peers []*peerListener, err error) {
 // 启动网络监听
 // 1. serve grpc
 // 2. serve rafthttp + grpc
+// 3. cmx是为了配合多网络监听而引入的一个库，文档可以看这里：https://github.com/soheilhy/cmux
 func (e *Etcd) servePeers() (err error) {
 	fmt.Println("<===================>", "embed.servePeers \n")
 
@@ -575,9 +576,13 @@ func (e *Etcd) servePeers() (err error) {
 		}
 	}
 	// 要创建的Listenner数，取决于ETCD配置，默认1
+	// 不是etcd节点的peers
 	for _, p := range e.Peers {
 		u := p.Listener.Addr().String()
 		gs := v3rpc.Server(e.Server, peerTLScfg)
+
+		// Listener挂载到cmux下
+		// m.Serve才会监听端口启动服务
 		m := cmux.New(p.Listener)
 
 		// http2请求，流量走这里
@@ -592,7 +597,6 @@ func (e *Etcd) servePeers() (err error) {
 		}
 
 		// http请求走这里handler，适配V2版本client
-		// Serve 函数是一个for循环，不断从listener.accept中读取链接
 		go srv.Serve(m.Match(cmux.Any()))
 
 		// listerner的serve方法赋值
@@ -633,6 +637,8 @@ func (e *Etcd) servePeers() (err error) {
 			}
 			fmt.Println("<===================>", "raft peer 网络服务开始监听端口  peerListener.serve \n")
 			// 监听listen-peer-urls, 和其他etcd节点进行通信, raft协议
+			// l.serve == cmx.Serve
+			// start serving
 			e.errHandler(l.serve())
 		}(pl)
 	}

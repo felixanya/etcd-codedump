@@ -44,6 +44,8 @@ type Raft interface {
 	ReportSnapshot(id uint64, status raft.SnapshotStatus)
 }
 
+// 封装了raft-http的 RoundTripper 和 Handler
+// 支持raft-api的底层数据交互
 type Transporter interface {
 	// Start starts the given Transporter.
 	// Start MUST be called before calling other functions in the interface.
@@ -136,6 +138,7 @@ type Transport struct {
 }
 
 func (t *Transport) Start() error {
+	fmt.Println("<===================>", "raft transport Start, new RoundTripper \n")
 	var err error
 	t.streamRt, err = newStreamRoundTripper(t.TLSInfo, t.DialTimeout)
 	if err != nil {
