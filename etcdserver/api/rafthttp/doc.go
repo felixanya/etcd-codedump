@@ -35,3 +35,26 @@ package rafthttp
 // 对于每个server来说，不管是leader、candicate还是follower，都会维持一个peers数组，每个peer对应集群中的一个server，负责处理server之间的一些数据交互。
 // 当server需要向其他server发送数据时，只需要找到其他server对应的peer，然后向peer的streamWriter的msgc通道发送数据即可，streamWriter会监听msgc通道的数据并发送到对端server；
 // 而streamReader会在一个goroutine中循环读取对端发送来的数据，一旦接收到数据，就发送到peer的p.propc或p.recvc通道，而peer会监听这两个通道的事件，写入到node的n.propc或n.recvc通道，node只需要监听这两个通道的数据并处理即可。这就是在etcd的raft实现中server间数据交互的流程。
+
+// 代码结构树
+// etcd
+//  |-bin                                  编译后的可执行文件
+//  |-client                               客户端
+// ....
+// ....
+//  |-etcdserver                           核心，从逻辑上代表了一个完整的Etcd服务
+//  |  |-api
+//  |  |  |-etcdhttp
+//  |  |
+//  |  |  |-rafthttp                        server服务接口/rafthttp接口
+//  |  |  |  |-peer                         peer,raft节点的抽象
+//  |  |  |  |-transport                    peer间通信的网络层抽象
+//  |  |  |  |-stream                       流式通信，通信方式的一种
+//  |  |  |  |-pipeline                     通信方式的一种，当stream不可用时，切换成pipeline
+//  |  |  |  |-http                         raft-handler的具体实现
+// ....
+// ....
+//  |-lease                                租约，计时器
+//  |-mvcc                                 存储
+//  |-raft                                 raft模块，只处理raft核心算法，不具备HTTP能力
+//  |-wal                                  预写式日志

@@ -39,11 +39,11 @@ const (
 // grpc                                                             api/v3rpc/grpc.go 服务在这里注册
 //  |-etcdserver.Server                                             服务注册
 //  |  |-pb.RegisterKVServer()                                      注册KV服务
-//  |  |-pb.RegisterWatchServer()                                   注册LEASE服务
+//  |  |-pb.RegisterWatchServer()                                   注册WATCH服务
 //  |  |-pb.RegisterLeaseServer()                                   注册LEASE服务
-//  |  |-pb.RegisterClusterServer()                                 注册LEASE服务
-//  |  |-pb.RegisterAuthServer()                                    注册LEASE服务
-//  |  |-pb.RegisterMaintenanceServer()                             注册LEASE服务
+//  |  |-pb.RegisterClusterServer()
+//  |  |-pb.RegisterAuthServer()
+//  |  |-pb.RegisterMaintenanceServer()
 func Server(s *etcdserver.EtcdServer, tls *tls.Config, gopts ...grpc.ServerOption) *grpc.Server {
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.CustomCodec(&codec{}))

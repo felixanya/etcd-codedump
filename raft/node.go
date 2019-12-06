@@ -298,6 +298,8 @@ func (n *node) Stop() {
 
 // raft-node事件监听
 // 轮训读取n.propc
+// raftNode.Propose() ， Propose对msg做了一层封装，然后把msg推到propc（管道）中。接下来，raftNode会通过 run() 不断轮询propc处理管道中的消息。
+// 同时run函数还会接收处理好的消息（ready）, 回吐给上游
 func (n *node) run() {
 	var propc chan msgWithResult
 	var readyc chan Ready
@@ -345,7 +347,7 @@ func (n *node) run() {
 		// Currently it is dropped in Step silently.
 		// 来自client端的PUT请求
 		case pm := <-propc:
-			fmt.Println("<===================>", "主协程拿到请求消息；pm := <-propc \n")
+			fmt.Println("<===================>", "协程拿到CRUD请求消息；pm := <-propc \n")
 			m := pm.m
 			m.From = r.id
 			err := r.Step(m)
@@ -488,7 +490,6 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 	}
 
 	// pm写入到n.propc
-	// 目测是批量操作pm，否则不至于这么费劲
 	select {
 	case ch <- pm:
 		if !wait {

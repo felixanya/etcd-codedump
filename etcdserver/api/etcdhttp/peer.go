@@ -42,6 +42,7 @@ func NewPeerHandler(lg *zap.Logger, s etcdserver.ServerPeer) http.Handler {
 	return newPeerHandler(lg, s, s.RaftHandler(), s.LeaseHandler())
 }
 
+// raft peer handler 和 number handler
 func newPeerHandler(lg *zap.Logger, s etcdserver.Server, raftHandler http.Handler, leaseHandler http.Handler) http.Handler {
 	fmt.Println("<===================>", "raft peer handler 初始化（newPeerHandler） \n")
 	peerMembersHandler := newPeerMembersHandler(lg, s.Cluster())

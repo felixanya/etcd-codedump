@@ -76,6 +76,7 @@ type apply struct {
 	notifyc chan struct{}
 }
 
+// 在 raftNodeConfig 中继承了raftNode
 type raftNode struct {
 	lg *zap.Logger
 
@@ -385,6 +386,7 @@ func (r *raftNode) processMessages(ms []raftpb.Message) []raftpb.Message {
 	return ms
 }
 
+// <- .applyc
 func (r *raftNode) apply() chan apply {
 	return r.applyc
 }
