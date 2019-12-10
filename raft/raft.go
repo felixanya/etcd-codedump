@@ -536,9 +536,9 @@ func (r *raft) sendHeartbeat(to uint64, ctx []byte) {
 
 // bcastAppend sends RPC, with entries to all peers that are not up-to-date
 // according to the progress recorded in r.prs.
-// 分发log到各个节点
 // prs.Visit 遍历peers执行多次
 // raftNode在启动时（node.run）会不断轮训r.msgs，获取消息，创建一个ready实例
+// 把msg append到 r.msgs
 func (r *raft) bcastAppend() {
 	r.prs.Visit(func(id uint64, _ *tracker.Progress) {
 		if id == r.id {
@@ -610,6 +610,7 @@ func (r *raft) advance(rd Ready) {
 // maybeCommit attempts to advance the commit index. Returns true if
 // the commit index changed (in which case the caller should call
 // r.bcastAppend).
+// 当一个log得到多数peers的接收后，leader尝试commit这个日志
 func (r *raft) maybeCommit() bool {
 	mci := r.prs.Committed()
 	return r.raftLog.maybeCommit(mci, r.Term)
@@ -1016,6 +1017,8 @@ type stepFunc func(r *raft, m pb.Message) error
 
 // leader 节点所执行的step
 // step函数接收请求msg
+// 1. 接收MsgProp消息，把日志添加到自己的log中 appendEntry
+// 2. 向其他follower广播消息  bcastAppend
 func stepLeader(r *raft, m pb.Message) error {
 
 	// These message types do not require any progress for m.From.
@@ -1154,6 +1157,8 @@ func stepLeader(r *raft, m pb.Message) error {
 		return nil
 	}
 	switch m.Type {
+
+	// 来自follower的消息
 	case pb.MsgAppResp:
 		pr.RecentActive = true
 
@@ -1189,6 +1194,7 @@ func stepLeader(r *raft, m pb.Message) error {
 					pr.Inflights.FreeLE(m.Index)
 				}
 
+				// commit消息
 				if r.maybeCommit() {
 					r.bcastAppend()
 				} else if oldPaused {

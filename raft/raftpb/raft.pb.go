@@ -83,25 +83,25 @@ func (EntryType) EnumDescriptor() ([]byte, []int) { return fileDescriptorRaft, [
 type MessageType int32
 
 const (
-	MsgHup            MessageType = 0
-	MsgBeat           MessageType = 1
-	MsgProp           MessageType = 2
-	MsgApp            MessageType = 3
-	MsgAppResp        MessageType = 4
-	MsgVote           MessageType = 5
-	MsgVoteResp       MessageType = 6
-	MsgSnap           MessageType = 7
-	MsgHeartbeat      MessageType = 8
-	MsgHeartbeatResp  MessageType = 9
-	MsgUnreachable    MessageType = 10
-	MsgSnapStatus     MessageType = 11
-	MsgCheckQuorum    MessageType = 12
-	MsgTransferLeader MessageType = 13
-	MsgTimeoutNow     MessageType = 14
-	MsgReadIndex      MessageType = 15
-	MsgReadIndexResp  MessageType = 16
-	MsgPreVote        MessageType = 17
-	MsgPreVoteResp    MessageType = 18
+	MsgHup            MessageType = 0  // 本地消息：选举，可能会触发 pre-vote 或者 vote
+	MsgBeat           MessageType = 1  // 本地消息：心跳，触发放给 peers 的 Msgheartbeat
+	MsgProp           MessageType = 2  // 本地消息：Propose，触发 MsgApp
+	MsgApp            MessageType = 3  // 非本地：Op log 复制/配置变更 request
+	MsgAppResp        MessageType = 4  // 非本地：Op log 复制 response
+	MsgVote           MessageType = 5  // 非本地：vote request
+	MsgVoteResp       MessageType = 6  // 非本地：vote response
+	MsgSnap           MessageType = 7  // 非本地：Leader 向 Follower 拷贝 Snapshot，response Message 就是 MsgAppResp，通过这个值告诉 Leader 继续复制后面的日志
+	MsgHeartbeat      MessageType = 8  // 非本地：心跳 request
+	MsgHeartbeatResp  MessageType = 9  // 非本地：心跳 response
+	MsgUnreachable    MessageType = 10 // 本地消息：EtcdServer 通过这个消息告诉 raft 状态某个 Follower 不可达，让其发送 message方式由 pipeline 切成 ping-pong 模式
+	MsgSnapStatus     MessageType = 11 // 本地消息：EtcdServer 通过这个消息告诉 raft 状态机 snapshot 发送成功还是失败
+	MsgCheckQuorum    MessageType = 12 // 本地消息：CheckQuorum，用于 Lease read，Leader lease
+	MsgTransferLeader MessageType = 13 // 本地消息：可能会触发一个空的 MsgApp 尽快完成日志复制，也有可能是 MsgTimeoutNow 出 Transferee 立即进入选举
+	MsgTimeoutNow     MessageType = 14 // 非本地：触发 Transferee 立即进行选举
+	MsgReadIndex      MessageType = 15 // 非本地：Read only ReadIndex
+	MsgReadIndexResp  MessageType = 16 // 非本地：Read only ReadIndex response
+	MsgPreVote        MessageType = 17 // 非本地：pre vote request
+	MsgPreVoteResp    MessageType = 18 // 非本地：pre vote response
 )
 
 var MessageType_name = map[int32]string{

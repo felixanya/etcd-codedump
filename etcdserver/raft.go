@@ -160,9 +160,10 @@ func (r *raftNode) tick() {
 
 // start prepares and starts raftNode in a new goroutine. It is no longer safe
 // to modify the fields after it has been started.
-// raft node负责和其他peers交互、数据存储
-// etcd raft只负责raft算法核心
-// etcd raft启动需要etcdserver raft实现这几个接口 http-transport
+// 1. set commit index
+// 2. r.applyc <- ap
+// 3. 需要transport支持，向外发送raft-commit-msg
+// 3. r.raftStorage.Append(rd.Entries)
 func (r *raftNode) start(rh *raftReadyHandler) {
 	internalTimeout := time.Second
 
@@ -233,7 +234,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 				// the leader can write to its disk in parallel with replicating to the followers and them
 				// writing to their disks.
 				// For more details, check raft thesis 10.2.1
-				// 如果是leader节点，接收到etcd的msg要从这里发送给其他节点
+				// 如果是leader节点，msg要从这里发送给其他节点
 				if islead {
 					// gofail: var raftBeforeLeaderSend struct{}
 					r.transport.Send(r.processMessages(rd.Messages))

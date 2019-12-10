@@ -322,6 +322,9 @@ func (n *node) run() {
 			// handled first, but it's generally good to emit larger Readys plus
 			// it simplifies testing (by emitting less frequently and more
 			// predictably).
+			// 1. 创建ready结构体
+			// 2. 下一步发送给readyc，由raftNode处理
+			// 3. 处理完成后，清空raft.msg等（acceptReady）
 			rd = n.rn.readyWithoutAccept()
 			readyc = n.readyc
 		}
