@@ -94,6 +94,10 @@ type WAL struct {
 
 // Create creates a WAL ready for appending records. The given metadata is
 // recorded at the head of each WAL file, and can be retrieved with ReadAll.
+// 1. 创建wal临时文件夹
+// 2. 对文件加锁
+// 3. 添加metadata数据
+// 4. rename保证操作原子性
 func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 	if Exist(dirpath) {
 		return nil, os.ErrExist
@@ -254,6 +258,7 @@ func (w *WAL) cleanupWAL(lg *zap.Logger) {
 	}
 }
 
+// 文件处理完成后重命名
 func (w *WAL) renameWAL(tmpdirpath string) (*WAL, error) {
 	if err := os.RemoveAll(w.dir); err != nil {
 		return nil, err
@@ -270,8 +275,12 @@ func (w *WAL) renameWAL(tmpdirpath string) (*WAL, error) {
 		}
 		return nil, err
 	}
+
+	//
 	w.fp = newFilePipeline(w.lg, w.dir, SegmentSizeBytes)
 	df, err := fileutil.OpenDir(w.dir)
+
+	//
 	w.dirFile = df
 	return w, err
 }
