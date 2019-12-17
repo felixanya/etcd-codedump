@@ -67,29 +67,29 @@ var (
 // WAL is a logical representation of the stable storage.
 // WAL is either in read mode or append mode but not both.
 // A newly created WAL is in append mode, and ready for appending records.
-// A just opened WAL is in read mode, and ready for reading records.
-// The WAL will be ready for appending after reading out all the previous records.
+// A just opened WAL is in read mo ing after reading out all the previous records.
 type WAL struct {
-	lg *zap.Logger
+	lg *zap.Logger // 日志包
 
-	dir string // the living directory of the underlay files
+	dir string // wal文件存储位置
 
 	// dirFile is a fd for the wal directory for syncing on Rename
 	dirFile *os.File
 
-	metadata []byte           // metadata recorded at the head of each WAL
+	metadata []byte           // 每个wal文件的metadata头
 	state    raftpb.HardState // hardstate recorded at the head of WAL
 
-	start     walpb.Snapshot // snapshot to start reading
-	decoder   *decoder       // decoder to decode records
+	start     walpb.Snapshot //  从快照确定的位置之后开始读
+	decoder   *decoder       // decoder
 	readClose func() error   // closer for decode reader
 
 	mu      sync.Mutex
-	enti    uint64   // index of the last entry saved to the wal
-	encoder *encoder // encoder to encode records
+	enti    uint64   // 最后存储的entity index
+	encoder *encoder // encoder 和decoder对应
 
-	locks []*fileutil.LockedFile // the locked files the WAL holds (the name is increasing)
-	fp    *filePipeline
+	locks []*fileutil.LockedFile
+
+	fp *filePipeline
 }
 
 // Create creates a WAL ready for appending records. The given metadata is
@@ -104,12 +104,17 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 	}
 
 	// keep temporary wal directory so WAL initialization appears atomic
+	// 先创建一个.tmp的临时文件夹，当一切准备好后，执行rename操作，保证原子性
 	tmpdirpath := filepath.Clean(dirpath) + ".tmp"
+
+	// 删除.tmp文件夹
 	if fileutil.Exist(tmpdirpath) {
 		if err := os.RemoveAll(tmpdirpath); err != nil {
 			return nil, err
 		}
 	}
+
+	// 创建.tmp
 	if err := fileutil.CreateDirAll(tmpdirpath); err != nil {
 		if lg != nil {
 			lg.Warn(
@@ -123,7 +128,13 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 	}
 
 	p := filepath.Join(tmpdirpath, walName(0, 0))
+
+	// 创建file，包含两步操作
+	// 1. os.OpenFile
+	// 2. syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
+	// syscall.Flock 是意见锁，意味着对文件的类似操作都要提前拿锁，才能确定是否安全
 	f, err := fileutil.LockFile(p, os.O_WRONLY|os.O_CREATE, fileutil.PrivateFileMode)
+
 	if err != nil {
 		if lg != nil {
 			lg.Warn(
@@ -144,6 +155,8 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		}
 		return nil, err
 	}
+
+	// 预分配空间，感觉没卵用
 	if err = fileutil.Preallocate(f.File, SegmentSizeBytes, true); err != nil {
 		if lg != nil {
 			lg.Warn(
@@ -161,14 +174,20 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		dir:      dirpath,
 		metadata: metadata,
 	}
+
+	// encoder 加载file
 	w.encoder, err = newFileEncoder(f.File, 0)
 	if err != nil {
 		return nil, err
 	}
+
+	// file locks
 	w.locks = append(w.locks, f)
 	if err = w.saveCrc(0); err != nil {
 		return nil, err
 	}
+
+	// 文件头写入metadata
 	if err = w.encoder.encode(&walpb.Record{Type: metadataType, Data: metadata}); err != nil {
 		return nil, err
 	}
@@ -176,6 +195,10 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		return nil, err
 	}
 
+	// rename操作
+	// 1. 删除dir文件路径
+	// 2. rename tmpdir => dir
+	// 3. newFilePipeline, 启动goroutine，准备好Preallocate的file
 	if w, err = w.renameWAL(tmpdirpath); err != nil {
 		if lg != nil {
 			lg.Warn(
@@ -259,6 +282,9 @@ func (w *WAL) cleanupWAL(lg *zap.Logger) {
 }
 
 // 文件处理完成后重命名
+// 1. 删除dir文件路径
+// 2. rename tmpdir => dir
+// 3. newFilePipeline, 启动goroutine，准备好Preallocate的file
 func (w *WAL) renameWAL(tmpdirpath string) (*WAL, error) {
 	if err := os.RemoveAll(w.dir); err != nil {
 		return nil, err
@@ -276,11 +302,9 @@ func (w *WAL) renameWAL(tmpdirpath string) (*WAL, error) {
 		return nil, err
 	}
 
-	//
 	w.fp = newFilePipeline(w.lg, w.dir, SegmentSizeBytes)
 	df, err := fileutil.OpenDir(w.dir)
 
-	//
 	w.dirFile = df
 	return w, err
 }
